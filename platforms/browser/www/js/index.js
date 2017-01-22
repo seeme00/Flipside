@@ -1,11 +1,11 @@
 var dimension = 5;
-var windows;
+var windows = new Array();
 var size = 400;
 var numMove = 3;
 var mouseX = 0;
 var mouseY = 0;
 var rectSize = size / dimension;
-var moves;
+var moves = new Array();
 var currentCount = 0;
 
 var app = {
@@ -14,16 +14,60 @@ var app = {
         document.addEventListener('deviceready', this.onDeviceReady.bind(this), false);
     },
 
-    // deviceready Event Handler
-    //
-    // Bind any cordova events here. Common events are:
-    // 'pause', 'resume', etc.
     onDeviceReady: function() {
         document.getElementById("myCanvas").addEventListener('mouseup', onTouchEnd, false);
         document.getElementById("myCanvas").addEventListener('mousemove', onMouseMove, false);
         setup();
     },
 };
+
+
+function setup()
+{
+  var canvas = document.getElementById("myCanvas");
+  canvas.width = size;
+  canvas.height = size;
+  var context = canvas.getContext("2d");
+  for(var i = 0; i < dimension * dimension; i++)
+  {
+    var x = rectSize * (i % dimension);
+    var y = Math.floor(i / dimension)*rectSize;
+    windows.push(new Window(x, y, rectSize, context));
+  }
+
+  for(var i = 0; i < windows.length; i++)
+  {
+    windows[i].setNeighboors(getNeighboors(i));
+  }
+  generateGrid();
+  requestAnimationFrame(update);
+}
+
+function getNeighboors(index){
+  var top = index < dimension;
+  var bottom = index >= windows.length - dimension;
+  var left = index % dimension == 0;
+  var right = (index + 1) % dimension == 0;
+
+  var indexes = new Array();
+
+  if (!top && !left) {indexes.push(index - dimension - 1);}
+  if (!top) {indexes.push(index - dimension);}
+  if (!top && !right) {indexes.push(index - dimension + 1);}
+  if (!left) {indexes.push(index - 1);}
+  //if (index >= 0 && index <= windows.length) {indexes.push(index);}
+  if (!right) {indexes.push(index + 1);}
+  if (!bottom && !left) {indexes.push(index + dimension - 1);}
+  if (!bottom) {indexes.push(index + dimension);}
+  if (!bottom && !right) {indexes.push(index + dimension + 1);}
+
+  var wins = new Array();
+  for (var i = 0; i < indexes.length; i++){
+    wins.push(windows[indexes[i]]);
+  }
+
+  return wins;
+}
 
 function onMouseMove(evt)
 {
@@ -37,7 +81,7 @@ function onTouchEnd()
   var id = getIdFromCoord(mouseX, mouseY);
   if (id >= 0)
   {
-    flipWindow(id);
+    windows[id].flip();
     currentCount++;
   }
 }
@@ -46,68 +90,18 @@ function getIdFromCoord(x, y)
 {
   for(var i = 0; i < windows.length; i++)
   {
-    var xmin = rectSize * (i % dimension);
-    var xmax = xmin + rectSize;
-    var ymin = Math.floor(i / dimension)*rectSize;
-    var ymax = ymin + rectSize;
-
-    if (x >= xmin && x < xmax && y >= ymin && y < ymax)
-    {
+    if (windows[i].collides(x, y)){
       return i;
     }
   }
   return -1;
 }
 
-function setup()
-{
-  var canvas = document.getElementById("myCanvas");
-  canvas.width = size;
-  canvas.height = size;
-  moves = new Array();
-  currentCount = 0;
-  windows = new Array();
-  for(var i = 0; i < dimension * dimension; i++)
-  {
-    windows.push(false);
-  }
-  generateGrid();
-
-  // Start things off
-  requestAnimationFrame(update);
-}
-
-function flipWindow(index)
-{
-
-  var top = index < dimension;
-  var bottom = index >= windows.length - dimension;
-  var left = index % dimension == 0;
-  var right = (index + 1) % dimension == 0;
-
-  var indexes = new Array();
-
-  if (!top && !left) {indexes.push(index - dimension - 1);}
-  if (!top) {indexes.push(index - dimension);}
-  if (!top && !right) {indexes.push(index - dimension + 1);}
-  if (!left) {indexes.push(index - 1);}
-  if (index >= 0 && index <= windows.length) {indexes.push(index);}
-  if (!right) {indexes.push(index + 1);}
-  if (!bottom && !left) {indexes.push(index + dimension - 1);}
-  if (!bottom) {indexes.push(index + dimension);}
-  if (!bottom && !right) {indexes.push(index + dimension + 1);}
-
-  for (idx = 0; idx < indexes.length; idx++)
-  {
-    windows[indexes[idx]] = !windows[indexes[idx]];
-  }
-}
-
 function generateGrid(reset)
 {
   for(var i = 0; i < windows.length; i++)
   {
-    windows[i] = false;
+    windows[i].lightUp = false;
   }
 
   if (!reset)
@@ -122,7 +116,7 @@ function generateGrid(reset)
 
   for(var i = 0; i < moves.length; i++)
   {
-    flipWindow(moves[i]);
+    windows[moves[i]].flip();
   }
 }
 
@@ -130,7 +124,7 @@ function hasWon()
 {
   for(var i = 0; i < windows.length; i++)
   {
-    if (windows[i]) return false;
+    if (windows[i].lightUp) return false;
   }
   return true;
 }
@@ -150,16 +144,7 @@ function update() {
     ctx.strokeStyle="#000000";
     for(var i = 0; i < windows.length; i++)
     {
-      if (windows[i] == false)
-      {
-        ctx.fillStyle="#00FF00";
-      }
-      else {
-        ctx.fillStyle="#FF0000";
-      }
-
-      ctx.fillRect(rectSize * (i % dimension), Math.floor(i / dimension)*rectSize , rectSize, rectSize);
-      ctx.strokeRect(rectSize * (i % dimension), Math.floor(i / dimension)*rectSize , rectSize, rectSize);
+      windows[i].draw();
     }
 
     requestAnimationFrame(update);
