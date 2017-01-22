@@ -1,4 +1,10 @@
 function Game(numCells, pixSize, moves, context){
+  //Game states
+  this.GameStates = {
+    INIT: "INIT",
+    SHUFFLE: "SHUFFLE"    
+  }
+
   //Various "static" state
   this.numCells = numCells;
   this.pixSize = pixSize;
