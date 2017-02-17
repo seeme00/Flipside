@@ -22,7 +22,7 @@ function setup(){
   canvas.height = size;
   var context = canvas.getContext("2d");
 
-  game = new Game(5, size, 3, context);
+  game = new Game(5, size, 3);
   game.initialize();
   requestAnimationFrame(update);
 }
@@ -39,7 +39,6 @@ function onTouchEnd(){
 
 function update() {
     game.update();
-    game.draw();
 
     requestAnimationFrame(update);
 }
